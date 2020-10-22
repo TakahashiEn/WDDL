@@ -30,6 +30,10 @@ Debug->Active(x64) :{
 #define MY_DEVICE_NAME		L"\\Device\\MyDeviceName"
 #define SYMBOL_LINK_NAME	L"\\??\\MyDeviceName"
 
+// 自定义I/O 控制的识别码的宏
+#define IOCTL_MUL			CTL_CODE(FILE_DEVICE_UNKNOWN, \
+									0x8888, METHOD_BUFFERED, FILE_ANY_ACCESS)
+
 //VOID doNothing(
 //	HANDLE ppid,
 //	HANDLE mypid,
@@ -151,6 +155,52 @@ NTSTATUS MyWrite(
 	return status;
 }
 
+NTSTATUS MyControl(
+	PDEVICE_OBJECT pDevice,
+	PIRP pIrp
+) {
+	NTSTATUS status = STATUS_SUCCESS;
+	DbgPrint("MyControl Func Running...\n");
+
+	// Set Data that R3 will be read
+	PIO_STACK_LOCATION pStack = IoGetCurrentIrpStackLocation(pIrp);
+	ULONG ioCode = pStack->Parameters.DeviceIoControl.IoControlCode;
+	ULONG inLen = pStack->Parameters.DeviceIoControl.InputBufferLength;
+	ULONG outLen = pStack->Parameters.DeviceIoControl.OutputBufferLength;
+	ULONG ioInfo = 0;
+
+	switch (ioCode)
+	{
+	case IOCTL_MUL: {
+
+		// input
+		DWORD32 inData = *(PDWORD32)pIrp->AssociatedIrp.SystemBuffer;
+		DbgPrint("--%p--%x--\n",((PDWORD32)pIrp->AssociatedIrp.SystemBuffer) ,inData);
+		
+		// do something
+		inData = inData * 16;
+
+		// output
+		*(PDWORD32)pIrp->AssociatedIrp.SystemBuffer = inData;
+		DbgPrint("--%p--%x--\n", ((PDWORD32)pIrp->AssociatedIrp.SystemBuffer), inData);
+		ioInfo = 4;
+		break;
+	}
+
+	default: {
+		status = STATUS_UNSUCCESSFUL;
+		ioInfo = 0;
+		break;
+	}
+	}
+
+	pIrp->IoStatus.Status = status;
+	pIrp->IoStatus.Information = ioInfo;
+	IoCompleteRequest(pIrp, IO_NO_INCREMENT);
+
+	return status;
+}
+
 NTSTATUS DriverEntry(
 	PDRIVER_OBJECT pDriver,
 	PUNICODE_STRING regPath
@@ -199,6 +249,9 @@ NTSTATUS DriverEntry(
 	pDriver->MajorFunction[IRP_MJ_CLEANUP] = MyCleanUp;
 	pDriver->MajorFunction[IRP_MJ_READ] = MyRead;
 	pDriver->MajorFunction[IRP_MJ_WRITE] = MyWrite;
+
+	// 自定义I/O控制函数
+	pDriver->MajorFunction[IRP_MJ_DEVICE_CONTROL] = MyControl;
 
 	return 0;
 }

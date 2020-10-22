@@ -4,10 +4,15 @@
 
 #include <Windows.h>
 #include <iostream>
+#include <winioctl.h>
 
 using std::cout;
 using std::cin;
 using std::endl;
+
+// 自定义I/O 控制的识别码的宏
+#define IOCTL_MUL			CTL_CODE(FILE_DEVICE_UNKNOWN, \
+									0x8888, METHOD_BUFFERED, FILE_ANY_ACCESS)
 
 int main() {
 
@@ -50,6 +55,26 @@ int main() {
 		);
 		cout << "----" << "Hello, I am R3!" \
 			 << "--" << writeNums << "----" << endl;
+
+		cout << "IO Control" << endl;
+		system("pause");
+
+		DWORD32 a = 0x00000001;
+		DWORD32 b = 0x00000000;
+		DWORD ioRet = 0;
+
+		DeviceIoControl(
+			handle,
+			IOCTL_MUL,
+			&a,
+			4,
+			&b,
+			4,
+			&ioRet,
+			NULL
+		);
+
+		cout << "--" << a << "--" << b << "--" << ioRet << endl;
 
 	}
 	
