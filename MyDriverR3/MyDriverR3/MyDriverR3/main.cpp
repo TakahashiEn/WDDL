@@ -12,6 +12,12 @@ using std::endl;
 int main() {
 
 	HANDLE handle = NULL;
+
+	CHAR readBuffer[64] = { 0 };
+
+	DWORD readNums = 0;
+	DWORD writeNums = 0;
+
 	handle = CreateFile(
 		L"\\\\.\\MyDeviceName",
 		GENERIC_READ | GENERIC_WRITE,
@@ -29,11 +35,26 @@ int main() {
 	}
 	else {
 		cout << "Open Device File Success!\n" << endl;
+		cout << "Read!" << endl;
 		system("pause");
+		ReadFile(handle, (PVOID)readBuffer, 64, &readNums, NULL);
+		cout << "----" << readBuffer << "--" << readNums << "----" << endl;
+
+		cout << "Write" << endl;
+		system("pause");
+		WriteFile(handle,
+			"Hello, I am R3!",
+			strlen("Hello, I am R3!"),
+			&writeNums,
+			NULL
+		);
+		cout << "----" << "Hello, I am R3!" \
+			 << "--" << writeNums << "----" << endl;
+
 	}
 	
-	CloseHandle(handle);
 	system("pause");
+	CloseHandle(handle);
 	return 0;
 
 }
